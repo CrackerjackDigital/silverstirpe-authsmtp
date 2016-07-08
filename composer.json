@@ -1,5 +1,5 @@
 {
-	"name": "crackerjackdigital/authsmtp",
+	"name": "crackerjackdigital/silverstripe-authsmtp",
 	"description": "SilverStripe module to configure email to use AuthSMTP service",
 	"type": "silverstripe-module",
 	"require": {
