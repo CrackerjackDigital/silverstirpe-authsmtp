@@ -1,0 +1,15 @@
+{
+	"name": "crackerjackdigital/authsmtp",
+	"description": "SilverStripe module to configure email to use AuthSMTP service",
+	"type": "silverstripe-module",
+	"require": {
+		"silverstripe/cms": ">=3.1.0",
+		"markguinn/silverstripe-email-helpers": "1.1.x"
+	},
+	"config": {
+		"process-timeout": 900
+	},
+	"extra": {
+		"installer-name": "authsmtp"
+	}
+}

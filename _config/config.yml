@@ -1,0 +1,12 @@
+---
+Name: authsmtp-module-config
+---
+AuthSMTPConfig:
+  host: mail.authsmtp.com
+  port: 2525
+  tls: true
+#  add following 3 settings in your project config e.g. _config/authsmtp.yml
+#  user: ''         # the user you login to AuthSMTP console with
+#  password: ''     # the password you login to AuthSMTP console with
+#  from: ''         # the sender for all emails, required to be allowed in AuthSMTP management console. If not set
+#                     then Email::default_admin() is used instead
