@@ -6,7 +6,7 @@ sites default configured email delivery service.
 
 ## Requirements:
 ```
-silverstripe/cms: ~3.1
+silverstripe/cms: >=3.1
 markguinn/silverstripe-email-helpers: 1.1.x
 ```
 
