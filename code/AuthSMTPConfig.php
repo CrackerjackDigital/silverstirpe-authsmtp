@@ -46,6 +46,7 @@ class AuthSMTPConfig extends Object {
 			$options['charset']
 		);
 		Injector::inst()->registerService($mailer, 'Mailer');
+		Email::set_mailer($mailer);
 
 		return $options;
 	}
