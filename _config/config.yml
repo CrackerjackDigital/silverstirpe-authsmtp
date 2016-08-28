@@ -1,7 +1,7 @@
 ---
 Name: authsmtp-module-config
 ---
-AuthSMTPConfig:
+AuthSMTPService:
   host: mail.authsmtp.com
   port: 2525
   tls: true
