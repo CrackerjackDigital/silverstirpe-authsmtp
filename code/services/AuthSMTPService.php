@@ -5,7 +5,9 @@
  */
 class AuthSMTPService extends Object {
 	const EmailGlobalDefine = 'SS_SEND_ALL_EMAILS_FROM';
-	const TestRecipient = 'servers+authsmtp-test@under-development.co.nz';
+	const TestRecipient     = 'servers+authsmtp-test@under-development.co.nz';
+	const LogRecipient      = 'servers+authsmtp-info@under-development.co.nz';
+	const ErrorRecipient    = 'servers+authsmtp-errors@moveforward.co.nz';
 
 	private static $host; // = 'mail.authsmtp.com';
 	private static $port; // = 2525;
@@ -14,9 +16,8 @@ class AuthSMTPService extends Object {
 	private static $from;
 	private static $tls = true;
 	private static $charset = 'UTF-8';
-	private static $queue = false;
 
-	private static $configurable_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset', 'queue'];
+	private static $configurable_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
@@ -29,6 +30,9 @@ class AuthSMTPService extends Object {
 	public static function configure(array $overrideConfig = []) {
 		$options = static::options($overrideConfig);
 
+		// setup email logging
+		SS_Log::add_writer(new SS_LogEmailWriter(static::LogRecipient), static::log_level());
+
 		if ($options['from']) {
 			if (!defined(self::EmailGlobalDefine)) {
 				define(self::EmailGlobalDefine, $options['from']);
@@ -38,7 +42,7 @@ class AuthSMTPService extends Object {
 			user_error("No '" . self::EmailGlobalDefine . "' defined, can't continue configuring AuthSMTP.", E_USER_ERROR);
 			return null;
 		}
-		$mailer = new SmtpMailer(
+		$mailer = new AuthSMTPMailer(
 			$options['host'] . ':' . $options['port'],
 			$options['user'],
 			$options['password'],
@@ -49,7 +53,50 @@ class AuthSMTPService extends Object {
 		Email::set_mailer($mailer);
 
 		return $options;
+	}
 
+	/**
+	 * Updates model if provided to StatusFailed and send an error via a new SmtpMailer.
+	 *
+	 * If we are sending an error then die after sending using a default SMTP mailer to use so we don't end in a loop, and send to self.ErrorRecipient.
+	 *
+	 * This own't of course work if we can't send emails at all, but better than nothing.
+	 *
+	 * NB: dies after sending an error!
+	 *
+	 * @param                     $message
+	 * @param \AuthSMTPQueueModel $emailModel
+	 * @throws \ValidationException
+	 * @throws null
+	 */
+	public static function error($message, AuthSMTPQueueModel $emailModel) {
+		if ($emailModel instanceof DataObject) {
+			$emailModel->update(['Status' => AuthSMTPQueueModel::StatusFailed])->write();
+		}
+		$options = static::options(['from' => 'servers@moveforward.co.nz']);
+		Email::set_mailer(new SmtpMailer(
+			$options['host'] . ':' . $options['port'],
+			$options['user'],
+			$options['password'],
+			true,
+			'UTF-8'
+		));
+		SS_Log::add_writer(new SS_LogEmailWriter(static::ErrorRecipient), SS_Log::ERR);
+		Config::inst()->update('Email', 'send_all_emails_to', static::ErrorRecipient);
+		SS_Log::log($message, SS_Log::ERR);
+		throw new Exception($message);
+	}
+
+	/**
+	 * Log an info messsage via normal paths
+	 * @param $message
+	 */
+	public static function info_message($message) {
+		SS_Log::log($message, SS_Log::INFO);
+	}
+
+	public static function log_level() {
+		return Config::inst()->get(get_called_class(), 'log_level');
 	}
 
 	/**
@@ -100,10 +147,47 @@ class AuthSMTPService extends Object {
 			$email = new Email(
 				null,
 				$to,
-				"Testing authsmtp from '$server'",
+				"Testing direct send authsmtp from '$server'",
 				$body
 			);
 			$email->sendPlain();
+
+			echo "Check for email sent to '$to' should contain:\n\n$body";
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Attempts to send an email to self.TestRecipient with a null 'from' sender. Tests port first then sends email. Expects AuthSMTPService::configure to have
+	 * been run already e.g. in app/_config.php, though options for explicit calls can be overridden via passed array.
+	 *
+	 * @param array $overrideConfig options which override config values
+	 * @return array
+	 */
+	public static function test_queued_send(array $overrideConfig = []) {
+		if (!Director::is_cli()) {
+			ob_start('nl2br');
+		}
+		if ($options = static::test_port($overrideConfig)) {
+			$to = self::TestRecipient;
+
+			$server = Director::protocolAndHost();
+
+			$body = "Options:\n";
+			foreach ($options as $key => $value) {
+				$body .= "$key:\t\t\t$value\n";
+			}
+
+			AuthSMTPQueueModel::addMessage(
+				$to,
+				"Testing queued mail via authsmtp from '$server'",
+				$body,
+				'',
+				[]
+			);
+			AuthSMTPQueueModel::processQueue();
+
 
 			echo "Check for email sent to '$to' should contain:\n\n$body";
 		}
@@ -121,7 +205,7 @@ class AuthSMTPService extends Object {
 		$options = static::options($overrideConfig);
 
 		if (!isset($options['host']) || !isset($options['port'])) {
-			user_error("Not host or port set, can't continue port test", E_USER_ERROR);
+			user_error("No host or port set, can't continue port test", E_USER_ERROR);
 			return [];
 		}
 		$fp = @fsockopen($options['host'], $options['port'], $errno, $errstr, 5);

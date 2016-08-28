@@ -5,6 +5,8 @@ AuthSMTPConfig:
   host: mail.authsmtp.com
   port: 2525
   tls: true
+  log_level: 3      # 3 = errors, 6 = info, 7 = debug
+  queue: true
 #  add following 3 settings in your project config e.g. _config/authsmtp.yml
 #  user: ''         # the user you login to AuthSMTP console with
 #  password: ''     # the password you login to AuthSMTP console with
