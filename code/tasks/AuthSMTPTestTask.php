@@ -6,6 +6,6 @@ class AuthSMTPTestTask extends BuildTask {
 	 * @param $request
 	 */
 	public function run($request) {
-		AuthSMTPConfig::test_send();
+		AuthSMTPService::test_send();
 	}
 }

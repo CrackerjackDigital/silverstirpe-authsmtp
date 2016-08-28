@@ -77,7 +77,7 @@ class AuthSMTPQueueModel extends DataObject {
 			return false;
 		}
 		//get sender from config
-		$from = AuthSMTPConfig::config()->get('from');
+		$from = AuthSMTPService::config()->get('from');
 
 		foreach ($queue as $msg) {
 			$notifier = Email::create($from, $msg->Recipient, $msg->Subject, $msg->Body);

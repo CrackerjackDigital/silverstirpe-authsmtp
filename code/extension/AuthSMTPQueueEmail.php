@@ -6,7 +6,7 @@
 class AuthSMTPQueueEmail extends Email {
 
 	public function queueOrSend($templateData = null, $attachmentArray = null) {
-		$queue = AuthSMTPConfig::config()->get('queue');
+		$queue = AuthSMTPService::config()->get('queue');
 		if (!$queue) {
 			$this->send();
 		}

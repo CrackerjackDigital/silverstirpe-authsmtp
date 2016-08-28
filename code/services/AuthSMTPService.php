@@ -1,9 +1,9 @@
 <?php
 
 /**
- * AuthSMTPConfig class for manual configuration if project doesn't use Injector and SmtpMailer configuration directly to setup AuthSMTPService
+ * AuthSMTPService class for manual configuration if project doesn't use Injector and SmtpMailer configuration directly to setup AuthSMTPService
  */
-class AuthSMTPConfig extends Object {
+class AuthSMTPService extends Object {
 	const EmailGlobalDefine = 'SS_SEND_ALL_EMAILS_FROM';
 	const TestRecipient = 'servers+authsmtp-test@under-development.co.nz';
 
@@ -20,7 +20,7 @@ class AuthSMTPConfig extends Object {
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
-	 * options or AuthSMTPConfig.config values.
+	 * options or AuthSMTPService.config values.
 	 *
 	 * @param array $overrideConfig options which override config values
 	 * @return array $options used to configure SmtpMailer as figured out from provided and config.
@@ -77,7 +77,7 @@ class AuthSMTPConfig extends Object {
 	}
 
 	/**
-	 * Attempts to send an email to self.TestRecipient with a null 'from' sender. Tests port first then sends email. Expects AuthSMTPConfig::configure to have
+	 * Attempts to send an email to self.TestRecipient with a null 'from' sender. Tests port first then sends email. Expects AuthSMTPService::configure to have
 	 * been run already e.g. in app/_config.php, though options for explicit calls can be overridden via passed array.
 	 *
 	 * @param array $overrideConfig options which override config values
