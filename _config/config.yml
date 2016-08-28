@@ -9,3 +9,4 @@ AuthSMTPConfig:
 #  user: ''         # the user you login to AuthSMTP console with
 #  password: ''     # the password you login to AuthSMTP console with
 #  from: ''         # who all emails will be sent from if no SS_SEND_ALL_EMAILS_FROM is already set will set it. This should be a valid sender in AuthSMTP config
+#  queue: true      # turn queuing on or off

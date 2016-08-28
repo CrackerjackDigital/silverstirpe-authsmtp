@@ -5,7 +5,7 @@
  */
 class AuthSMTPConfig extends Object {
 	const EmailGlobalDefine = 'SS_SEND_ALL_EMAILS_FROM';
-	const TestRecipient     = 'servers+authsmtp-test@under-development.co.nz';
+	const TestRecipient = 'servers+authsmtp-test@under-development.co.nz';
 
 	private static $host; // = 'mail.authsmtp.com';
 	private static $port; // = 2525;
@@ -14,8 +14,9 @@ class AuthSMTPConfig extends Object {
 	private static $from;
 	private static $tls = true;
 	private static $charset = 'UTF-8';
+	private static $queue = false;
 
-	private static $configurable_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
+	private static $configurable_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset', 'queue'];
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided

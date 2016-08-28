@@ -13,16 +13,20 @@ markguinn/silverstripe-email-helpers: 1.1.x
 
 ## Message Queuing Usage
 eg:
-add this to where email notifications are created
+extend AuthSMTPQueueEmail instead of Email in a custom email class 
 ```php
- AuthSMTPQueueModel::addMessage(
-            "youremail@example.com",
-            "email subject",
-            "This is the full email content",
-            "EmailTemplateNameHere",
-            ["Name" => "Name content"]
-        );
+ class CustomEmail extend AuthSMTPQueueEmail{
+
+ }
+
 ```
+Use below to send email instantly or add to queue
+```
+$email = CustomEmail::create($from, $recipient, $message)
+$email->queueOrSend(); 
+
+```
+
 
 And then add a cron task to process queued messages
 
