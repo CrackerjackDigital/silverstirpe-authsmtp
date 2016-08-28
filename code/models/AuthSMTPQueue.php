@@ -50,16 +50,18 @@ class AuthSMTPQueueModel extends DataObject {
 	 * add email message to queue
 	 *
 	 */
-	public static function addMessage($Recipient, $Subject, $Body, $Template, array $TemplateData = [], array $Attachments = [], array $CustomHeader = []) {
+	public static function addMessage($Recipient, $Subject, $Body, $Template, $TemplateData = null, $Attachments = null, $CustomHeader = null) {
 		$msg = AuthSMTPQueueModel::create();
 		$msg->Subject = $Subject;
 		$msg->Recipient = $Recipient;
 		$msg->Body = $Body;
 		$msg->Template = $Template;
-		$msg->TemplateData = json_encode($TemplateData);
+		$msg->TemplateData = base64_encode($TemplateData);
 		$msg->CustomHeader = json_encode($CustomHeader);
 		$msg->Attachments = json_encode($Attachments);
+
 		return $msg->write();
+
 	}
 
 	/**
@@ -82,7 +84,7 @@ class AuthSMTPQueueModel extends DataObject {
 			$notifier->setTemplate($msg->Template);
 
 			//attachments
-			$files = json_decode($queue->Attachments, true);
+			$files = json_decode($msg->Attachments, true);
 			if (!empty($files)) {
 				foreach ($files as $file) {
 					$f = File::get()->byID($file['ID']);
@@ -102,11 +104,10 @@ class AuthSMTPQueueModel extends DataObject {
 			}
 
 			//template data
-			$TemplateData = json_decode($msg->TemplateData, true);
+			$TemplateData = unserialize(base64_decode($msg->TemplateData));
 			if (!empty($TemplateData)) {
 				$notifier->populateTemplate($TemplateData);
 			}
-
 			//send and deleted from queue when successful
 			if ($notifier->send()) {
 				echo "Sent notification to " . $msg->Recipient . "\n";
