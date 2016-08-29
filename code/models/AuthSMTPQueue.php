@@ -25,6 +25,7 @@ class AuthSMTPQueueModel extends DataObject {
 	public static $default_sort = "Created ASC";
 
 	private static $summary_fields = [
+		'Updated' => 'Date',
 		'Subject' => "Subject",
 		'Recipient' => "Recipient",
 		'Status' => 'Status',
