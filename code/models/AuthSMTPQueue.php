@@ -5,6 +5,11 @@
  *  This will fix screen hanging when sending to multiple recipients
  */
 class AuthSMTPQueueModel extends DataObject {
+	const StatusQueued = 'Queued';
+	const StatusSending = 'Sending';
+	const StatusSent = 'Sent';
+	const StatusFailed = 'Failed';
+
 	private static $db = [
 		"Subject" => "Varchar(255)",
 		"Recipient" => "Varchar(255)",
@@ -13,23 +18,21 @@ class AuthSMTPQueueModel extends DataObject {
 		"TemplateData" => "Text",
 		"CustomHeader" => "Text",
 		'Attachments' => 'Text',
-		"Sent" => "Boolean",
+		"Status" => "Varchar(8)",
+	    "Result" => "Varchar(255)"
 	];
 
-	public static $default_sort = "Created DESC";
+	public static $default_sort = "Created ASC";
 
 	private static $summary_fields = [
 		'Subject' => "Subject",
 		'Recipient' => "Recipient",
-		'IsSent' => "Sent",
+		'Status' => 'Status',
+	    'Result' => 'Result'
 	];
 
 	public function getTitle() {
 		return $this->Subject;
-	}
-
-	public function IsSent() {
-		return ($this->Sent) ? "Yes" : "No";
 	}
 
 	public function canView($member = null) {
@@ -59,6 +62,7 @@ class AuthSMTPQueueModel extends DataObject {
 		$msg->TemplateData = base64_encode($TemplateData);
 		$msg->CustomHeader = json_encode($CustomHeader);
 		$msg->Attachments = json_encode($Attachments);
+		$msg->Status = self::StatusQueued;
 
 		return $msg->write();
 
@@ -71,7 +75,10 @@ class AuthSMTPQueueModel extends DataObject {
 	 *
 	 */
 	public static function processQueue() {
-		$queue = static::get()->filter(["Sent" => 0])->sort("Created", "DESC")->limit(2);
+		$queue = static::get()->filter(
+			[ "Status" => self::StatusQueued ]
+		)->sort("Created", "ASC")->limit(AuthSMTPService::send_window_size());
+
 		if ($queue->count() == 0) {
 			echo "No Emails Available" . "\n";
 			return false;
@@ -80,6 +87,11 @@ class AuthSMTPQueueModel extends DataObject {
 		$from = AuthSMTPService::config()->get('from');
 
 		foreach ($queue as $msg) {
+			$msg->update([
+				'Status' => self::StatusSending
+			])->write();
+
+			/** @var Email $notifier */
 			$notifier = Email::create($from, $msg->Recipient, $msg->Subject, $msg->Body);
 			$notifier->setTemplate($msg->Template);
 
@@ -108,11 +120,25 @@ class AuthSMTPQueueModel extends DataObject {
 			if (!empty($TemplateData)) {
 				$notifier->populateTemplate($TemplateData);
 			}
-			//send and deleted from queue when successful
-			if ($notifier->send()) {
-				echo "Sent notification to " . $msg->Recipient . "\n";
-				$msg->Sent = 1;
-				$msg->write();
+			try {
+				//send and deleted from queue when successful
+				if ($notifier->send()) {
+					echo "Sent notification to " . $msg->Recipient . "\n";
+
+					$msg->update([
+						'Status' => self::StatusSent,
+						'Result' => 'OK'
+					])->write();
+
+				}
+			} catch (Exception $e) {
+				echo "Failed to send notification to " . $msg->Recipient . ": \n" . $e->getMessage() . "\n";
+
+				$msg->update([
+					'Status' => self::StatusFailed,
+					'Result' => $e->getMessage()
+				])->write();
+
 			}
 		}
 		return true;

@@ -4,10 +4,11 @@
  * AuthSMTPService class for manual configuration if project doesn't use Injector and SmtpMailer configuration directly to setup AuthSMTPService
  */
 class AuthSMTPService extends Object {
-	const EmailGlobalDefine = 'SS_SEND_ALL_EMAILS_FROM';
-	const TestRecipient     = 'servers+authsmtp-test@under-development.co.nz';
-	const LogRecipient      = 'servers+authsmtp-info@under-development.co.nz';
-	const ErrorRecipient    = 'servers+authsmtp-errors@moveforward.co.nz';
+	const EmailGlobalDefine     = 'SS_SEND_ALL_EMAILS_FROM';
+	const TestRecipient         = 'servers+authsmtp-test@under-development.co.nz';
+	const LogRecipient          = 'servers+authsmtp-info@under-development.co.nz';
+	const ErrorRecipient        = 'servers+authsmtp-errors@moveforward.co.nz';
+	const DefaultSendWindowSize = 2;
 
 	private static $host; // = 'mail.authsmtp.com';
 	private static $port; // = 2525;
@@ -17,7 +18,11 @@ class AuthSMTPService extends Object {
 	private static $tls = true;
 	private static $charset = 'UTF-8';
 
-	private static $configurable_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
+	// if queue implemented, how many messages to process at a time
+	private static $send_window_size;
+
+	// only these options will be passed to the mailer from configuration
+	private static $mailer_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
@@ -89,6 +94,7 @@ class AuthSMTPService extends Object {
 
 	/**
 	 * Log an info messsage via normal paths
+	 *
 	 * @param $message
 	 */
 	public static function info_message($message) {
@@ -100,6 +106,16 @@ class AuthSMTPService extends Object {
 	}
 
 	/**
+	 * Return how many messages should be processed at a time, e.g. via queueing mechanism.
+	 * Settable via config.send_window_size or returns self.DefaultSendWindowSize.
+	 *
+	 * @return int
+	 */
+	public static function send_window_size() {
+		return static::config()->get('send_window_size') ?: static::DefaultSendWindowSize;
+	}
+
+	/**
 	 * Merge configurable options from self.config in with passed options, passed options take precedence.
 	 *
 	 * @param array $overrideConfig options which override config values
@@ -107,7 +123,7 @@ class AuthSMTPService extends Object {
 	 */
 	public static function options(array $overrideConfig = []) {
 		$config = static::config();
-		$configurableOptions = static::config()->get('configurable_options');
+		$configurableOptions = static::config()->get('mailer_options');
 
 		return array_merge(
 			array_combine(
@@ -125,7 +141,7 @@ class AuthSMTPService extends Object {
 
 	/**
 	 * Attempts to send an email to self.TestRecipient with a null 'from' sender. Tests port first then sends email. Expects AuthSMTPService::configure to have
-	 * been run already e.g. in app/_config.php, though options for explicit calls can be overridden via passed array.
+	 * been run already e.g. in app/_config.php, though options for test calls can be overridden via passed array.
 	 *
 	 * @param array $overrideConfig options which override config values
 	 * @return array
@@ -160,7 +176,7 @@ class AuthSMTPService extends Object {
 
 	/**
 	 * Attempts to send an email to self.TestRecipient with a null 'from' sender. Tests port first then sends email. Expects AuthSMTPService::configure to have
-	 * been run already e.g. in app/_config.php, though options for explicit calls can be overridden via passed array.
+	 * been run already e.g. in app/_config.php, though options for test calls can be overridden via passed array.
 	 *
 	 * @param array $overrideConfig options which override config values
 	 * @return array
@@ -187,7 +203,6 @@ class AuthSMTPService extends Object {
 				[]
 			);
 			AuthSMTPQueueModel::processQueue();
-
 
 			echo "Check for email sent to '$to' should contain:\n\n$body";
 		}
