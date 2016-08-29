@@ -200,7 +200,7 @@ class AuthSMTPService extends Object {
 				"Testing queued mail via authsmtp from '$server'",
 				$body,
 				'',
-				[]
+				serialize(['Name' => 'Fred'])
 			);
 			AuthSMTPQueueModel::processQueue();
 
