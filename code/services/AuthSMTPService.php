@@ -76,7 +76,10 @@ class AuthSMTPService extends Object {
 	 */
 	public static function error($message, AuthSMTPQueueModel $emailModel) {
 		if ($emailModel instanceof DataObject) {
-			$emailModel->update(['Status' => AuthSMTPQueueModel::StatusFailed])->write();
+			$emailModel->update([
+				'Status' => AuthSMTPQueueModel::StatusFailed,
+				'Result' => $message
+			])->write();
 		}
 		$options = static::options(['from' => 'servers@moveforward.co.nz']);
 		Email::set_mailer(new SmtpMailer(

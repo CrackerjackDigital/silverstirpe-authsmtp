@@ -134,11 +134,7 @@ class AuthSMTPQueueModel extends DataObject {
 			} catch (Exception $e) {
 				echo "Failed to send notification to " . $msg->Recipient . ": \n" . $e->getMessage() . "\n";
 
-				$msg->update([
-					'Status' => self::StatusFailed,
-					'Result' => $e->getMessage()
-				])->write();
-
+				AuthSMTPService::error("Failed to '$msg->Recipient': " . $e->getMessage(), $msg);
 			}
 		}
 		return true;
