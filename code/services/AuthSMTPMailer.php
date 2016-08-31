@@ -5,6 +5,7 @@ class AuthSMTPMailer extends SmtpMailer {
 	 */
 	protected function initMailer() {
 		$mail = new PHPMailer(true);
+		$mail->AllowEmpty = true;
 		$mail->IsSMTP();
 		$mail->Host = $this->host;
 
