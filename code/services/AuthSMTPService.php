@@ -181,29 +181,29 @@ class AuthSMTPService extends Object {
 		if (!Director::is_cli()) {
 			ob_start('nl2br');
 		}
-		if ($options = static::test_port($overrideConfig)) {
-			$to = self::TestRecipient;
+		$options = static::options($overrideConfig);
 
-			$server = Director::protocolAndHost();
+		$to = static::TestRecipient;
 
-			$body = "Options:\n";
-			foreach ($options as $key => $value) {
-				if ($key == 'password') {
-					$value = str_repeat('*', strlen($value));
-				}
-				$body .= "$key:\t\t\t$value\n";
+		$server = Director::protocolAndHost();
+
+		$body = "Options:\n";
+		foreach ($options as $key => $value) {
+			if ($key == 'password') {
+				$value = str_repeat('*', strlen($value));
 			}
-
-			$email = new Email(
-				null,
-				$to,
-				"Testing direct send authsmtp from '$server'",
-				$body
-			);
-			$email->sendPlain();
-
-			echo "Check for email sent to '$to' should contain:\n\n$body";
+			$body .= "$key:\t\t\t$value\n";
 		}
+		/** @var Email $email */
+		$email = Email::create(
+			null,
+			$to,
+			"Testing direct send authsmtp from '$server'",
+			$body
+		);
+		$email->sendPlain();
+
+		echo "Check for email sent to '$to' should contain:\n\n$body";
 
 		return $options;
 	}
@@ -219,30 +219,30 @@ class AuthSMTPService extends Object {
 		if (!Director::is_cli()) {
 			ob_start('nl2br');
 		}
-		if ($options = static::test_port($overrideConfig)) {
-			$to = self::TestRecipient;
+		$options = static::options($overrideConfig);
 
-			$server = Director::protocolAndHost();
+		$to = static::TestRecipient;
 
-			$body = "Options:\n";
-			foreach ($options as $key => $value) {
-				if ($key == 'password') {
-					$value = str_repeat('*', strlen($value));
-				}
-				$body .= "$key:\t\t\t$value\n";
+		$server = Director::protocolAndHost();
+
+		$body = "Options:\n";
+		foreach ($options as $key => $value) {
+			if ($key == 'password') {
+				$value = str_repeat('*', strlen($value));
 			}
-
-			AuthSMTPQueueModel::addMessage(
-				$to,
-				"Testing queued mail via authsmtp from '$server'",
-				$body,
-				'',
-				serialize(['Name' => 'Fred'])
-			);
-			AuthSMTPQueueModel::processQueue();
-
-			echo "Check for email sent to '$to' should contain:\n\n$body";
+			$body .= "$key:\t\t\t$value\n";
 		}
+
+		AuthSMTPQueueModel::addMessage(
+			$to,
+			"Testing queued mail via authsmtp from '$server'",
+			$body,
+			'',
+			serialize(['Name' => 'Fred'])
+		);
+		AuthSMTPQueueModel::processQueue();
+
+		echo "Check for email sent to '$to' should contain:\n\n$body";
 
 		return $options;
 	}
