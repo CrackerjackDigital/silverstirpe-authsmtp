@@ -4,11 +4,14 @@
  * AuthSMTPService class for manual configuration if project doesn't use Injector and SmtpMailer configuration directly to setup AuthSMTPService
  */
 class AuthSMTPService extends Object {
-	const EmailGlobalDefine     = 'SS_SEND_ALL_EMAILS_FROM';
-	const TestRecipient         = 'servers+authsmtp-test@under-development.co.nz';
-	const LogRecipient          = 'servers+authsmtp-info@under-development.co.nz';
-	const ErrorRecipient        = 'servers+authsmtp-errors@moveforward.co.nz';
-	const DefaultSendWindowSize = 2;
+	const EmailGlobalDefine        = 'SS_SEND_ALL_EMAILS_FROM';
+	const TestRecipient            = 'servers+authsmtp@moveforward.co.nz';
+	const LogRecipient             = 'servers+authsmtp@moveforward.co.nz';
+	const ErrorRecipient           = 'servers+authsmtp@moveforward.co.nz';
+	const DefaultSendWindowSize    = 2;
+	const DefaultAllowEmptyBody    = true;
+	const DefaultExceptionsOnError = true;
+	const DefaultSafeSender        = 'servers@moveforward.co.nz';
 
 	private static $host; // = 'mail.authsmtp.com';
 	private static $port; // = 2525;
@@ -18,11 +21,23 @@ class AuthSMTPService extends Object {
 	private static $tls = true;
 	private static $charset = 'UTF-8';
 
-	// if queue implemented, how many messages to process at a time
-	private static $send_window_size;
+	// allow sending of emails with an empty body
+	private static $allow_empty_body = self::DefaultAllowEmptyBody;
 
-	// only these options will be passed to the mailer from configuration
+	// if queue implemented, how many messages to process at a time
+	private static $send_window_size = self::DefaultSendWindowSize;
+
+	// wether or not exceptions are thrown by SmtpMailer and ourselves when an error occurs
+	private static $exceptions_on_error = self::DefaultExceptionsOnError;
+
+	// only these options will be passed to the SMTP class from configuration
 	private static $mailer_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
+
+	// if an error occurs send it to this address
+	private static $error_recipient = self::ErrorRecipient;
+
+	// should be safe to send from this email address, ie is registered with AuthSMTP gateway service
+	private static $safe_sender = self::DefaultSafeSender;
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
@@ -61,27 +76,17 @@ class AuthSMTPService extends Object {
 	}
 
 	/**
-	 * Updates model if provided to StatusFailed and send an error via a new SmtpMailer.
+	 * Reconfigure a vanilla smtp sender and send error through to the config.error_recipient from config.safe_sender.
 	 *
-	 * If we are sending an error then die after sending using a default SMTP mailer to use so we don't end in a loop, and send to self.ErrorRecipient.
-	 *
-	 * This own't of course work if we can't send emails at all, but better than nothing.
+	 * This won't always work if e.g. port or network issue, but better than nothing.
 	 *
 	 * NB: dies after sending an error!
 	 *
-	 * @param                     $message
-	 * @param \AuthSMTPQueueModel $emailModel
-	 * @throws \ValidationException
-	 * @throws null
+	 * @param  string $message
 	 */
-	public static function error($message, AuthSMTPQueueModel $emailModel) {
-		if ($emailModel instanceof DataObject) {
-			$emailModel->update([
-				'Status' => AuthSMTPQueueModel::StatusFailed,
-				'Result' => $message
-			])->write();
-		}
-		$options = static::options(['from' => 'servers@moveforward.co.nz']);
+	public static function error($message) {
+		$options = static::options(['from' => AuthSMTPService::safe_sender()]);
+
 		Email::set_mailer(new SmtpMailer(
 			$options['host'] . ':' . $options['port'],
 			$options['user'],
@@ -89,10 +94,17 @@ class AuthSMTPService extends Object {
 			true,
 			'UTF-8'
 		));
-		SS_Log::add_writer(new SS_LogEmailWriter(static::ErrorRecipient), SS_Log::ERR);
-		Config::inst()->update('Email', 'send_all_emails_to', static::ErrorRecipient);
+		$errorRecipient = static::error_recipient();
+
+		SS_Log::add_writer(new SS_LogEmailWriter($errorRecipient), SS_Log::ERR);
+
+		Config::inst()->update('Email', 'send_all_emails_to', $errorRecipient);
+		// old school
+		@Email::send_all_emails_to($errorRecipient);
+
 		SS_Log::log($message, SS_Log::ERR);
-		throw new Exception($message);
+
+		die;
 	}
 
 	/**
@@ -116,6 +128,22 @@ class AuthSMTPService extends Object {
 	 */
 	public static function send_window_size() {
 		return static::config()->get('send_window_size') ?: static::DefaultSendWindowSize;
+	}
+
+	public static function allow_empty_body() {
+		return static::config()->get('allow_empty_body');
+	}
+
+	public static function exceptions_on_error() {
+		return static::config()->get('exceptions_on_error');
+	}
+
+	public static function error_recipient() {
+		return static::config()->get('error_recipient');
+	}
+
+	public static function safe_sender() {
+		return static::config()->get('safe_sender');
 	}
 
 	/**
@@ -160,6 +188,9 @@ class AuthSMTPService extends Object {
 
 			$body = "Options:\n";
 			foreach ($options as $key => $value) {
+				if ($key == 'password') {
+					$value = str_repeat('*', strlen($value));
+				}
 				$body .= "$key:\t\t\t$value\n";
 			}
 
@@ -195,6 +226,9 @@ class AuthSMTPService extends Object {
 
 			$body = "Options:\n";
 			foreach ($options as $key => $value) {
+				if ($key == 'password') {
+					$value = str_repeat('*', strlen($value));
+				}
 				$body .= "$key:\t\t\t$value\n";
 			}
 

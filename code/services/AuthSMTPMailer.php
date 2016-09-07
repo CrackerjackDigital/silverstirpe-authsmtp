@@ -1,11 +1,13 @@
 <?php
+
 class AuthSMTPMailer extends SmtpMailer {
 	/**
 	 * creates a new phpmailer object with exceptions enabled
 	 */
 	protected function initMailer() {
-		$mail = new PHPMailer(true);
-		$mail->AllowEmpty = true;
+		$mail = new PHPMailer(AuthSMTPService::exceptions_on_error());
+
+		$mail->AllowEmpty = AuthSMTPService::allow_empty_body();
 		$mail->IsSMTP();
 		$mail->Host = $this->host;
 
@@ -27,19 +29,44 @@ class AuthSMTPMailer extends SmtpMailer {
 	}
 
 	public function sendHTML($to, $from, $subject, $htmlContent, $attachedFiles = false, $customheaders = false, $plainContent = false, $inlineImages = false) {
-		if (!parent::sendHTML($to, $from, $subject, $htmlContent, $attachedFiles, $customheaders, $plainContent, $inlineImages)) {
-			// shouldn't get here as phpmailer should have thrown an exception already
-			throw new Exception("AuthSMTPMailer failed to send html email to '$to', from '$from' with subject '$subject'");
+		$sent = false;
+		try {
+			if ($sent = parent::sendHTML($to, $from, $subject, $htmlContent, $attachedFiles, $customheaders, $plainContent, $inlineImages)) {
+
+				SS_Log::log("AuthSMTPMailer sent html email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
+
+			} else {
+
+				throw new Exception("AuthSMTPMailer failed to send html email to '$to', from '$from' with subject '$subject'");
+
+			}
+		} catch (Exception $e) {
+
+			AuthSMTPService::error("AuthSMTPMailer failed to send html email to '$to', from '$from' with subject '$subject': " . $e->getMessage());
+
 		}
-		SS_Log::log("AuthSMTPMailer sent html email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
-		return true;
+		return $sent;
 	}
+
 	public function sendPlain($to, $from, $subject, $plainContent, $attachedFiles = false, $customheaders = false) {
-		if (!parent::sendPlain($to, $from, $subject, $plainContent, $attachedFiles, $customheaders)) {
-			// shouldn't get here as phpmailer should have thrown an exception already
-			throw new Exception("AuthSMTPMailer failed to send plain text email to '$to', from '$from' with subject '$subject'");
+		$sent = false;
+
+		try {
+			if ($sent = parent::sendPlain($to, $from, $subject, $plainContent, $attachedFiles, $customheaders)) {
+
+				SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
+
+			} else {
+
+				throw new Exception("AuthSMTPMailer failed to send plain text email to '$to', from '$from' with subject '$subject'");
+
+			}
+
+		} catch (Exception $e) {
+
+			AuthSMTPService::error("AuthSMTPMailer failed to send plain text email to '$to', from '$from' with subject '$subject'");
+
 		}
-		SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
-		return true;
+		return $sent;
 	}
 }

@@ -119,10 +119,11 @@ class AuthSMTPQueueModel extends DataObject {
 			//template data
 			$TemplateData = unserialize(base64_decode($msg->TemplateData));
 			if (!empty($TemplateData)) {
+				
 				$notifier->populateTemplate($TemplateData);
 			}
 			try {
-				//send and deleted from queue when successful
+				//send and update message in queue when successful
 				if ($notifier->send()) {
 					echo "Sent notification to " . $msg->Recipient . "\n";
 
@@ -131,11 +132,23 @@ class AuthSMTPQueueModel extends DataObject {
 						'Result' => 'OK'
 					])->write();
 
+				} else {
+
+					throw new Exception("Failed to send notification '$msg->Subject' to '$msg->Recipient' from '$from'\n");
+
 				}
 			} catch (Exception $e) {
-				echo "Failed to send notification to " . $msg->Recipient . ": \n" . $e->getMessage() . "\n";
+				// we'll probably never get here as the sendPlain and sendHTML methods should have done this already
+				// but implementation may change...
+				echo $e->getMessage();
 
-				AuthSMTPService::error("Failed to '$msg->Recipient': " . $e->getMessage(), $msg);
+				$msg->update([
+					'Status' => self::StatusFailed,
+					'Result' => $e->getMessage()
+				])->write();
+
+				// this will die
+				AuthSMTPService::error($e->getMessage());
 			}
 		}
 		return true;

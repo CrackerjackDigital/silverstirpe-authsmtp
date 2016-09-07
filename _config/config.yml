@@ -8,6 +8,7 @@ AuthSMTPService:
   log_level: 3      # 3 = errors, 6 = info, 7 = debug
   queue: true
   send_window_size: 2
+  allow_empty_body: true
 #  add following 3 settings in your project config e.g. _config/authsmtp.yml
 #  user: ''         # the user you login to AuthSMTP console with
 #  password: ''     # the password you login to AuthSMTP console with
