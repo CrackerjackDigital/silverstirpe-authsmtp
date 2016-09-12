@@ -4,10 +4,10 @@
  * AuthSMTPService class for manual configuration if project doesn't use Injector and SmtpMailer configuration directly to setup AuthSMTPService
  */
 class AuthSMTPService extends Object {
-	const EmailGlobalDefine        = 'SS_SEND_ALL_EMAILS_FROM';
-	const TestRecipient            = 'servers+authsmtp@moveforward.co.nz';
-	const LogRecipient             = 'servers+authsmtp@moveforward.co.nz';
-	const ErrorRecipient           = 'servers+authsmtp@moveforward.co.nz';
+	const EmailGlobalFromDefine    = 'SS_SEND_ALL_EMAILS_FROM';
+	const DefaultLogRecipient      = 'servers+authsmtp-logs@under-development.co.nz';
+	const DefaultErrorRecipient    = 'servers+authsmtp-errors@moveforward.co.nz';
+	const DefaultTestRecipient     = 'servers+authsmtp-test@under-development.co.nz';
 	const DefaultSendWindowSize    = 2;
 	const DefaultAllowEmptyBody    = true;
 	const DefaultExceptionsOnError = true;
@@ -34,10 +34,14 @@ class AuthSMTPService extends Object {
 	private static $mailer_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
 
 	// if an error occurs send it to this address
-	private static $error_recipient = self::ErrorRecipient;
+	private static $error_recipient = self::DefaultErrorRecipient;
 
 	// should be safe to send from this email address, ie is registered with AuthSMTP gateway service
 	private static $safe_sender = self::DefaultSafeSender;
+
+	private static $test_recipient = self::DefaultTestRecipient;
+
+	private static $log_recipient = self::DefaultLogRecipient;
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
@@ -51,15 +55,15 @@ class AuthSMTPService extends Object {
 		$options = static::options($overrideConfig);
 
 		// setup email logging
-		SS_Log::add_writer(new SS_LogEmailWriter(static::LogRecipient), static::log_level());
+		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::log_level());
 
 		if ($options['from']) {
-			if (!defined(self::EmailGlobalDefine)) {
-				define(self::EmailGlobalDefine, $options['from']);
+			if (!defined(self::EmailGlobalFromDefine)) {
+				define(self::EmailGlobalFromDefine, $options['from']);
 			}
 		}
-		if (!defined(self::EmailGlobalDefine)) {
-			user_error("No '" . self::EmailGlobalDefine . "' defined, can't continue configuring AuthSMTP.", E_USER_ERROR);
+		if (!defined(self::EmailGlobalFromDefine)) {
+			user_error("No '" . self::EmailGlobalFromDefine . "' defined, can't continue configuring AuthSMTP.", E_USER_ERROR);
 			return null;
 		}
 		$mailer = new AuthSMTPMailer(
@@ -142,6 +146,14 @@ class AuthSMTPService extends Object {
 		return static::config()->get('error_recipient');
 	}
 
+	public static function test_recipient() {
+		return static::config()->get('test_recipient');
+	}
+
+	public static function log_recipient() {
+		return static::config()->get('log_recipient');
+	}
+
 	public static function safe_sender() {
 		return static::config()->get('safe_sender');
 	}
@@ -183,7 +195,7 @@ class AuthSMTPService extends Object {
 		}
 		$options = static::options($overrideConfig);
 
-		$to = static::TestRecipient;
+		$to = static::test_recipient();
 
 		$server = Director::protocolAndHost();
 
@@ -221,7 +233,7 @@ class AuthSMTPService extends Object {
 		}
 		$options = static::options($overrideConfig);
 
-		$to = static::TestRecipient;
+		$to = static::test_recipient();
 
 		$server = Director::protocolAndHost();
 
