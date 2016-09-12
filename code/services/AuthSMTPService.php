@@ -265,6 +265,7 @@ class AuthSMTPService extends Object {
 			user_error("Looks like port '" . $options['port'] . "' is not open to connect to host '" . $options['host'] . "'. $errstr", E_USER_ERROR);
 			return [];
 		} else {
+			echo "Port '" . $options['port'] . "' appears to be open";
 			// port is open and available
 			fclose($fp);
 		}
