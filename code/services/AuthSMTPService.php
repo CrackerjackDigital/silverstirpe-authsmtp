@@ -240,9 +240,8 @@ class AuthSMTPService extends Object {
 			'',
 			serialize(['Name' => 'Fred'])
 		);
-		AuthSMTPQueueModel::processQueue();
 
-		echo "Check for email sent to '$to' should contain:\n\n$body";
+		echo "Message added to Queue, run /dev/tasks/AuthSMTPQueueTask and check for email sent to '$to' should contain:\n\n$body";
 
 		return $options;
 	}
