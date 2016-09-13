@@ -22,7 +22,7 @@ class AuthSMTPQueueModel extends DataObject {
 	    "Result" => "Varchar(255)"
 	];
 
-	public static $default_sort = "Created ASC";
+	public static $default_sort = "LastEdited DESC";
 
 	private static $summary_fields = [
 		'LastEdited' => 'Date',
@@ -119,7 +119,7 @@ class AuthSMTPQueueModel extends DataObject {
 			//template data
 			$TemplateData = unserialize(base64_decode($msg->TemplateData));
 			if (!empty($TemplateData)) {
-				
+
 				$notifier->populateTemplate($TemplateData);
 			}
 			try {
