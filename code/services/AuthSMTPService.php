@@ -250,7 +250,8 @@ class AuthSMTPService extends Object {
 			"Testing queued mail via authsmtp from '$server'",
 			$body,
 			'',
-			serialize(['Name' => 'Fred'])
+			serialize(['Name' => 'Fred'],
+			$to)
 		);
 
 		echo "Message added to Queue, run /dev/tasks/AuthSMTPQueueTask and check for email sent to '$to' should contain:\n\n$body";

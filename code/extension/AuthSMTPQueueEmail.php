@@ -18,7 +18,8 @@ class AuthSMTPQueueEmail extends Email {
 			$this->getTemplate(),
 			$templateData,
 			$attachmentArray,
-			$this->customHeaders
+			$this->customHeaders,
+			$this->From()
 		);
 
 		return true;
