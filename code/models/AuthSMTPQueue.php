@@ -19,15 +19,17 @@ class AuthSMTPQueueModel extends DataObject {
 		"CustomHeader" => "Text",
 		'Attachments' => 'Text',
 		"Status" => "Varchar(8)",
-	    "Result" => "Varchar(255)"
+	    "Result" => "Varchar(255)",
+		"From" => "Varchar(255)",
 	];
 
-	public static $default_sort = "Created ASC";
+	public static $default_sort = "LastEdited DESC";
 
 	private static $summary_fields = [
 		'LastEdited' => 'Date',
 		'Subject' => "Subject",
 		'Recipient' => "Recipient",
+		'From' => "From",
 		'Status' => 'Status',
 	    'Result' => 'Result'
 	];
@@ -54,7 +56,7 @@ class AuthSMTPQueueModel extends DataObject {
 	 * add email message to queue
 	 *
 	 */
-	public static function addMessage($Recipient, $Subject, $Body, $Template, $TemplateData = null, $Attachments = null, $CustomHeader = null) {
+	public static function addMessage($Recipient, $Subject, $Body, $Template, $TemplateData = null, $Attachments = null, $CustomHeader = null, $From = null) {
 		$msg = AuthSMTPQueueModel::create();
 		$msg->Subject = $Subject;
 		$msg->Recipient = $Recipient;
@@ -64,6 +66,21 @@ class AuthSMTPQueueModel extends DataObject {
 		$msg->CustomHeader = json_encode($CustomHeader);
 		$msg->Attachments = json_encode($Attachments);
 		$msg->Status = self::StatusQueued;
+
+		//get default sender from config
+		$authorised_from = AuthSMTPService::config()->get('from');
+
+		//if there is a message sender and it is from an authorised domain, use that instead
+		if(($allowed_domains = AuthSMTPService::config()->get('allowed_from')) && $From)
+		{
+			foreach ($allowed_domains as $allowed) {
+				if (preg_match('/@'.$allowed.'/', $From)) {
+					$authorised_from = $From;
+					break;
+				}
+			}
+		}
+		$msg->From = $authorised_from;
 
 		return $msg->write();
 
@@ -84,16 +101,15 @@ class AuthSMTPQueueModel extends DataObject {
 			echo "No Emails Available" . "\n";
 			return false;
 		}
-		//get sender from config
-		$from = AuthSMTPService::config()->get('from');
 
 		foreach ($queue as $msg) {
+
 			$msg->update([
 				'Status' => self::StatusSending
 			])->write();
 
 			/** @var Email $notifier */
-			$notifier = Email::create($from, $msg->Recipient, $msg->Subject, $msg->Body);
+			$notifier = Email::create($msg->From, $msg->Recipient, $msg->Subject, $msg->Body);
 			$notifier->setTemplate($msg->Template);
 
 			//attachments
@@ -119,7 +135,7 @@ class AuthSMTPQueueModel extends DataObject {
 			//template data
 			$TemplateData = unserialize(base64_decode($msg->TemplateData));
 			if (!empty($TemplateData)) {
-				
+
 				$notifier->populateTemplate($TemplateData);
 			}
 			try {
