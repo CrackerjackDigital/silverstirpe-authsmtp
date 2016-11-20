@@ -4,6 +4,13 @@ class AuthSMTPMailer extends SmtpMailer {
 
 	private static $log_level = SS_Log::WARN;
 
+	private static $smtp_options = [
+	#   'ssl' => [
+	#       'verify_host' => false,             // disable ssl host name checking
+	#       'verify_peer' => false              // disable ssl peer checking (we should be connecting to a trusted host).
+	#   ]
+	];
+
 	/**
 	 * creates a new phpmailer object with exceptions enabled
 	 */
@@ -13,6 +20,7 @@ class AuthSMTPMailer extends SmtpMailer {
 		$mail->AllowEmpty = AuthSMTPService::allow_empty_body();
 		$mail->IsSMTP();
 		$mail->Host = $this->host;
+		$mail->SMTPOptions = $this->config()->get('smtp_options') ?: [];
 
 		if ($this->user) {
 			$mail->SMTPAuth = true; // turn on SMTP authentication
@@ -30,6 +38,7 @@ class AuthSMTPMailer extends SmtpMailer {
 
 		return $mail;
 	}
+
 
 	/**
 	 * Call through to get the current AuthSMTPService config.log_level.
@@ -68,7 +77,7 @@ class AuthSMTPMailer extends SmtpMailer {
 				SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", static::log_level());
 
 			} else {
-				
+
 				throw new Exception("AuthSMTPMailer failed to send plain text email to '$to', from '$from' with subject '$subject'");
 
 			}

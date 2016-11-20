@@ -87,21 +87,6 @@ class AuthSMTPService extends Object {
 	}
 
 	/**
-	 * Getter/Setter for config.log_level which is used while logging in a '<=' comparison.
-	 *
-	 * @param int $newLevel
-	 * @return int
-	 */
-	public static function log_level($newLevel = null) {
-		if (func_num_args()) {
-			Config::inst()->update(get_called_class(), 'log_level', $newLevel);
-		}
-		return Config::inst()->get(get_called_class(), 'log_level');
-	}
-
-
-
-	/**
 	 * Reconfigure a vanilla smtp sender and send error through to the config.error_recipient from config.safe_sender.
 	 *
 	 * This won't always work if e.g. port or network issue, but better than nothing.
@@ -174,6 +159,19 @@ class AuthSMTPService extends Object {
 
 	public static function log_recipient() {
 		return static::config()->get('log_recipient');
+	}
+
+	/**
+	 * Getter/Setter for config.log_level which is used while logging in a '<=' comparison.
+	 *
+	 * @param int $newLevel
+	 * @return int
+	 */
+	public static function log_level($newLevel = null) {
+		if (func_num_args()) {
+			Config::inst()->update(get_called_class(), 'log_level', $newLevel);
+		}
+		return Config::inst()->get(get_called_class(), 'log_level');
 	}
 
 	public static function safe_sender() {
