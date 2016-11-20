@@ -43,7 +43,10 @@ class AuthSMTPService extends Object {
 
 	private static $log_recipient = self::DefaultLogRecipient;
 
-	// log level should be used by all code in this module, and used in <=comparison
+	// log level used in configure method to setup minimum email reporting,
+	// also means all message across the site <= this level will be emailed, and emailed via authsmtp
+	// so don't be too loose here or we'll blow our email quota.
+	// TODO use modular Debugger instead to restrict to just this module?
 	private static $log_level = SS_Log::WARN;
 
 	/**
@@ -57,7 +60,8 @@ class AuthSMTPService extends Object {
 	public static function configure(array $overrideConfig = []) {
 		$options = static::options($overrideConfig);
 
-		// setup email logging
+		// setup email logging, this will apply to all SS_Log calls made across the site sending an email so be
+		// quite strict.
 		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::log_level(), '<=');
 
 		if ($options['from']) {

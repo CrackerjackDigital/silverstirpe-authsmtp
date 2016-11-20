@@ -31,12 +31,20 @@ class AuthSMTPMailer extends SmtpMailer {
 		return $mail;
 	}
 
+	/**
+	 * Call through to get the current AuthSMTPService config.log_level.
+	 * @return int
+	 */
+	public static function log_level() {
+		return AuthSMTPService::log_level();
+	}
+
 	public function sendHTML($to, $from, $subject, $htmlContent, $attachedFiles = false, $customheaders = false, $plainContent = false, $inlineImages = false) {
 		$sent = false;
 		try {
 			if ($sent = parent::sendHTML($to, $from, $subject, $htmlContent, $attachedFiles, $customheaders, $plainContent, $inlineImages)) {
 
-				SS_Log::log("AuthSMTPMailer sent html email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
+				SS_Log::log("AuthSMTPMailer sent html email to '$to', from '$from' with subject '$subject'", static::log_level());
 
 			} else {
 
@@ -57,7 +65,7 @@ class AuthSMTPMailer extends SmtpMailer {
 		try {
 			if ($sent = parent::sendPlain($to, $from, $subject, $plainContent, $attachedFiles, $customheaders)) {
 
-				SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
+				SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", static::log_level());
 
 			} else {
 				
