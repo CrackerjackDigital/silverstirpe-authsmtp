@@ -1,6 +1,9 @@
 <?php
 
 class AuthSMTPMailer extends SmtpMailer {
+
+	private static $log_level = SS_Log::WARN;
+
 	/**
 	 * creates a new phpmailer object with exceptions enabled
 	 */
@@ -57,7 +60,7 @@ class AuthSMTPMailer extends SmtpMailer {
 				SS_Log::log("AuthSMTPMailer sent plain text email to '$to', from '$from' with subject '$subject'", SS_Log::INFO);
 
 			} else {
-
+				
 				throw new Exception("AuthSMTPMailer failed to send plain text email to '$to', from '$from' with subject '$subject'");
 
 			}

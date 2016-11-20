@@ -43,6 +43,9 @@ class AuthSMTPService extends Object {
 
 	private static $log_recipient = self::DefaultLogRecipient;
 
+	// log level should be used by all code in this module, and used in <=comparison
+	private static $log_level = SS_Log::WARN;
+
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
 	 * options or AuthSMTPService.config values.
@@ -55,7 +58,7 @@ class AuthSMTPService extends Object {
 		$options = static::options($overrideConfig);
 
 		// setup email logging
-		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::log_level());
+		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::log_level(), '<=');
 
 		if ($options['from']) {
 			if (!defined(self::EmailGlobalFromDefine)) {
@@ -78,6 +81,21 @@ class AuthSMTPService extends Object {
 
 		return $options;
 	}
+
+	/**
+	 * Getter/Setter for config.log_level which is used while logging in a '<=' comparison.
+	 *
+	 * @param int $newLevel
+	 * @return int
+	 */
+	public static function log_level($newLevel = null) {
+		if (func_num_args()) {
+			Config::inst()->update(get_called_class(), 'log_level', $newLevel);
+		}
+		return Config::inst()->get(get_called_class(), 'log_level');
+	}
+
+
 
 	/**
 	 * Reconfigure a vanilla smtp sender and send error through to the config.error_recipient from config.safe_sender.
@@ -103,8 +121,11 @@ class AuthSMTPService extends Object {
 		SS_Log::add_writer(new SS_LogEmailWriter($errorRecipient), SS_Log::ERR);
 
 		Config::inst()->update('Email', 'send_all_emails_to', $errorRecipient);
-		// old school
-		@Email::send_all_emails_to($errorRecipient);
+
+		if (method_exists('Email', 'send_all_emails_to')) {
+			// old school, @ to ignore deprecated message
+			@Email::send_all_emails_to($errorRecipient);
+		}
 
 		SS_Log::log($message, SS_Log::ERR);
 
@@ -120,9 +141,6 @@ class AuthSMTPService extends Object {
 		SS_Log::log($message, SS_Log::INFO);
 	}
 
-	public static function log_level() {
-		return Config::inst()->get(get_called_class(), 'log_level');
-	}
 
 	/**
 	 * Return how many messages should be processed at a time, e.g. via queueing mechanism.
