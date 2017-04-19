@@ -43,11 +43,11 @@ class AuthSMTPService extends Object {
 
 	private static $log_recipient = self::DefaultLogRecipient;
 
-	// log level used in configure method to setup minimum email reporting,
-	// also means all message across the site <= this level will be emailed, and emailed via authsmtp
-	// so don't be too loose here or we'll blow our email quota.
-	// TODO use modular Debugger instead to restrict to just this module?
-	private static $log_level = SS_Log::WARN;
+	// log level dictates what we log when logging, email sending is different handled in $email_log_level
+	private static $log_level = SS_Log::INFO;
+
+    // level at which a log event will be emailed to admin email
+	private static $email_log_level = SS_Log::WARN;
 
 	/**
 	 * Call this method to configure the SilverStripe Mail class to use SmtpMailer class as it's default Mailer using either provided
@@ -62,7 +62,7 @@ class AuthSMTPService extends Object {
 
 		// setup email logging, this will apply to all SS_Log calls made across the site sending an email so be
 		// quite strict.
-		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::log_level(), '<=');
+		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::email_log_level(), '<=');
 
 		if ($options['from']) {
 			if (!defined(self::EmailGlobalFromDefine)) {
@@ -165,13 +165,26 @@ class AuthSMTPService extends Object {
 	 * Getter/Setter for config.log_level which is used while logging in a '<=' comparison.
 	 *
 	 * @param int $newLevel
-	 * @return int
+	 * @return int the current log level (after setting if a new level was supplied)
 	 */
 	public static function log_level($newLevel = null) {
 		if (func_num_args()) {
 			Config::inst()->update(get_called_class(), 'log_level', $newLevel);
 		}
 		return Config::inst()->get(get_called_class(), 'log_level');
+	}
+    /**
+	 * Getter/setter for config.email_log_level which dictates what level log event also gets emailed to admin
+	 *
+	 * @param int $newLevel
+	 * @return int the current log level (after setting if a new level was supplied)
+	 */
+	public static function email_log_level($newLevel = null) {
+		if (func_num_args()) {
+			Config::inst()->update(get_called_class(), 'email_log_level', $newLevel);
+		}
+		return Config::inst()->get(get_called_class(), 'email_log_level');
+
 	}
 
 	public static function safe_sender() {
