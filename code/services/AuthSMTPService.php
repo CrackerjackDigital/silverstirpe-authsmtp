@@ -64,7 +64,7 @@ class AuthSMTPService extends Object {
 		// quite strict.
 		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::email_log_level(), '<=');
 
-		if ($options['from']) {
+		if (!empty($options['from'])) {
 			if (!defined(self::EmailGlobalFromDefine)) {
 				define(self::EmailGlobalFromDefine, $options['from']);
 			}
@@ -118,7 +118,7 @@ class AuthSMTPService extends Object {
 
 		SS_Log::log($message, SS_Log::ERR);
 
-		die;
+		return false;
 	}
 
 	/**

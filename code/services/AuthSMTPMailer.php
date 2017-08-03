@@ -63,6 +63,7 @@ class AuthSMTPMailer extends SmtpMailer {
 		} catch (Exception $e) {
 
 			AuthSMTPService::error("AuthSMTPMailer failed to send html email to '$to', from '$from' with subject '$subject': " . $e->getMessage());
+			throw $e;
 
 		}
 		return $sent;
