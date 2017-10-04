@@ -5,7 +5,7 @@ AuthSMTPService:
   host: mail.authsmtp.com
   port: 2525
   tls: true
-  log_level: 4      # 3 = errors, 4 = warn, 6 = info, 7 = debug
+  log_level: 3      # 3 = errors, 6 = info, 7 = debug
   queue: true
   send_window_size: 2
   allow_empty_body: true

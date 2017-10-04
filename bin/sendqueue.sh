@@ -18,7 +18,7 @@ fi
 
 if [ ! -e ~/htdocs ]; then
 	echo "Please link the web root to ~/htdocs"  1>&2
-	echo "e.g. ln -s ~/<webroot> ~/htdocs"  1>&2
+	echo "ln -s ~/<webroot> ~/htdocs"  1>&2
 	exit 2;
 fi
 cd ~/htdocs
