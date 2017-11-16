@@ -12,7 +12,7 @@ class AuthSMTPQueueModel extends DataObject {
 
 	private static $db = [
 		"Subject" => "Varchar(255)",
-		"Recipient" => "Varchar(255)",
+		"Recipient" => "Text",
 		"Body" => "HTMLText",
 		"Template" => "Varchar",
 		"TemplateData" => "Text",
