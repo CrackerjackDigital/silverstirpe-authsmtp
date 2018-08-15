@@ -201,7 +201,7 @@ class AuthSMTPService extends Object {
 		$config = static::config();
 		$configurableOptions = static::config()->get('mailer_options');
 
-		return array_merge(
+		$options = array_merge(
 			array_combine(
 				$configurableOptions,
 				array_map(
@@ -213,6 +213,29 @@ class AuthSMTPService extends Object {
 			),
 			$overrideConfig
 		);
+		if ( defined( 'AUTHSMTP_HOST' ) ) {
+			$options['host'] = constant( 'AUTHSMTP_HOST' ) ?: $options['host'];
+		}
+		if ( defined( 'AUTHSMTP_PORT' ) ) {
+			$options['port'] = constant( 'AUTHSMTP_PORT' );
+		}
+		if ( defined( 'AUTHSMTP_USER' ) ) {
+			$options['user'] = constant( 'AUTHSMTP_USER' );
+		}
+		if ( defined( 'AUTHSMTP_PASSWORD' ) ) {
+			$options['password'] = constant( 'AUTHSMTP_PASSWORD' );
+		}
+		if ( defined( 'AUTHSMTP_TLS' ) ) {
+			$options['tls'] = constant( 'AUTHSMTP_TLS' );
+		}
+		if ( defined( 'AUTHSMTP_FROM' ) ) {
+			$options['from'] = constant( 'AUTHSMTP_FROM' );
+		}
+		if ( defined( 'AUTHSMTP_QUEUE' ) ) {
+			$options['queue'] = constant( 'AUTHSMTP_QUEUE' );
+		}
+
+		return $options;
 	}
 
 	/**

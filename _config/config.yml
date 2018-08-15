@@ -1,5 +1,8 @@
 ---
 Name: authsmtp-module-config
+After:
+  - 'cms/*'
+  - 'framework/*'
 ---
 AuthSMTPService:
   host: mail.authsmtp.com
