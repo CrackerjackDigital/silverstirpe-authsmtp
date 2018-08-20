@@ -21,6 +21,9 @@ class AuthSMTPService extends Object {
 	private static $tls = true;
 	private static $charset = 'UTF-8';
 
+	// use queue for sending emails instead of sending immediately
+	private static $queue = false;
+
 	// allow sending of emails with an empty body
 	private static $allow_empty_body = self::DefaultAllowEmptyBody;
 
@@ -31,7 +34,7 @@ class AuthSMTPService extends Object {
 	private static $exceptions_on_error = self::DefaultExceptionsOnError;
 
 	// only these options will be passed to the SMTP class from configuration
-	private static $mailer_options = ['host', 'port', 'user', 'password', 'from', 'tls', 'charset'];
+	private static $mailer_options = [ 'host', 'port', 'user', 'password', 'from', 'tls', 'charset' ];
 
 	// if an error occurs send it to this address
 	private static $error_recipient = self::DefaultErrorRecipient;
@@ -46,7 +49,7 @@ class AuthSMTPService extends Object {
 	// log level dictates what we log when logging, email sending is different handled in $email_log_level
 	private static $log_level = SS_Log::INFO;
 
-    // level at which a log event will be emailed to admin email
+	// level at which a log event will be emailed to admin email
 	private static $email_log_level = SS_Log::WARN;
 
 	/**
@@ -54,23 +57,25 @@ class AuthSMTPService extends Object {
 	 * options or AuthSMTPService.config values.
 	 *
 	 * @param array $overrideConfig options which override config values
+	 *
 	 * @return array $options used to configure SmtpMailer as figured out from provided and config.
 	 */
 
-	public static function configure(array $overrideConfig = []) {
-		$options = static::options($overrideConfig);
+	public static function configure( array $overrideConfig = [] ) {
+		$options = static::options( $overrideConfig );
 
 		// setup email logging, this will apply to all SS_Log calls made across the site sending an email so be
 		// quite strict.
-		SS_Log::add_writer(new SS_LogEmailWriter(static::log_recipient()), static::email_log_level(), '<=');
+		SS_Log::add_writer( new SS_LogEmailWriter( static::log_recipient() ), static::email_log_level(), '<=' );
 
-		if (!empty($options['from'])) {
-			if (!defined(self::EmailGlobalFromDefine)) {
-				define(self::EmailGlobalFromDefine, $options['from']);
+		if ( ! empty( $options['from'] ) ) {
+			if ( ! defined( self::EmailGlobalFromDefine ) ) {
+				define( self::EmailGlobalFromDefine, $options['from'] );
 			}
 		}
-		if (!defined(self::EmailGlobalFromDefine)) {
-			user_error("No '" . self::EmailGlobalFromDefine . "' defined, can't continue configuring AuthSMTP.", E_USER_ERROR);
+		if ( ! defined( self::EmailGlobalFromDefine ) ) {
+			user_error( "No '" . self::EmailGlobalFromDefine . "' defined, can't continue configuring AuthSMTP.", E_USER_ERROR );
+
 			return null;
 		}
 		$mailer = new AuthSMTPMailer(
@@ -80,10 +85,74 @@ class AuthSMTPService extends Object {
 			$options['tls'],
 			$options['charset']
 		);
-		Injector::inst()->registerService($mailer, 'Mailer');
-		Email::set_mailer($mailer);
+		Injector::inst()->registerService( $mailer, 'Mailer' );
+		Email::set_mailer( $mailer );
 
 		return $options;
+	}
+
+	/**
+	 * Add a message to queue with status Queued and Immediate false.
+	 *
+	 * @param        $Recipient
+	 * @param        $Subject
+	 * @param        $Body
+	 * @param        $Template
+	 * @param null   $TemplateData
+	 * @param null   $Attachments
+	 * @param null   $CustomHeader
+	 * @param null   $From
+	 *
+	 * @return \AuthSMTPQueueEntry
+	 * @throws \ValidationException
+	 *
+	 */
+	public static function enqueue( $Recipient, $Subject, $Body, $Template, $TemplateData = null, $Attachments = null, $CustomHeader = null, $From = null ) {
+		$msg            = AuthSMTPQueueEntry::factory(
+			AuthSMTPQueueEntry::StatusQueued,
+			$Recipient,
+			$Subject,
+			$Body,
+			$Template,
+			$TemplateData,
+			$Attachments,
+			$CustomHeader,
+			$From
+		);
+
+		$msg->Status    = ;
+		$msg->Immediate = false;
+
+		return $msg->write() ? $msg : null;
+	}
+
+	/**
+	 * Store a log of an immediate message sent (or failed) with Status and Immediate true
+	 *
+	 * @param bool|string $Status       boolean indicating success or one of the AuthSMTPQueueModel::StatusXYZ values, e.g. StatusQueued or StatusFailed
+	 * @param string      $Recipient
+	 * @param string      $Subject
+	 * @param string      $Body
+	 * @param string      $Template
+	 * @param string      $TemplateData
+	 * @param string      $Attachments
+	 * @param string      $CustomHeader
+	 * @param string      $From
+	 *
+	 * @return AuthSMTPQueueEntry
+	 * @throws \ValidationException
+	 *
+	 */
+	public static function log( $Status, $Recipient, $Subject, $Body, $Template, $TemplateData = null, $Attachments = null, $CustomHeader = null, $From = null ) {
+		$msg = AuthSMTPQueueEntry::factory( $Recipient, $Subject, $Body, $Template, $TemplateData, $Attachments, $CustomHeader, $From );
+
+		$msg->Status = is_bool( $Status )
+			? ( $Status ? $msg::StatusSent : $msg::StatusFailed )
+			: $Status;
+
+		$msg->Immediate = true;
+
+		return $msg->write() ? $msg : null;
 	}
 
 	/**
@@ -94,29 +163,31 @@ class AuthSMTPService extends Object {
 	 * NB: dies after sending an error!
 	 *
 	 * @param  string $message
+	 *
+	 * @return bool
 	 */
-	public static function error($message) {
-		$options = static::options(['from' => AuthSMTPService::safe_sender()]);
+	public static function error( $message ) {
+		$options = static::options( [ 'from' => AuthSMTPService::safe_sender() ] );
 
-		Email::set_mailer(new SmtpMailer(
+		Email::set_mailer( new SmtpMailer(
 			$options['host'] . ':' . $options['port'],
 			$options['user'],
 			$options['password'],
 			true,
 			'UTF-8'
-		));
+		) );
 		$errorRecipient = static::error_recipient();
 
-		SS_Log::add_writer(new SS_LogEmailWriter($errorRecipient), SS_Log::ERR);
+		SS_Log::add_writer( new SS_LogEmailWriter( $errorRecipient ), SS_Log::ERR );
 
-		Config::inst()->update('Email', 'send_all_emails_to', $errorRecipient);
+		Config::inst()->update( 'Email', 'send_all_emails_to', $errorRecipient );
 
-		if (method_exists('Email', 'send_all_emails_to')) {
+		if ( method_exists( 'Email', 'send_all_emails_to' ) ) {
 			// old school, @ to ignore deprecated message
-			@Email::send_all_emails_to($errorRecipient);
+			@Email::send_all_emails_to( $errorRecipient );
 		}
 
-		SS_Log::log($message, SS_Log::ERR);
+		SS_Log::log( $message, SS_Log::ERR );
 
 		return false;
 	}
@@ -126,10 +197,9 @@ class AuthSMTPService extends Object {
 	 *
 	 * @param $message
 	 */
-	public static function info_message($message) {
-		SS_Log::log($message, SS_Log::INFO);
+	public static function info_message( $message ) {
+		SS_Log::log( $message, SS_Log::INFO );
 	}
-
 
 	/**
 	 * Return how many messages should be processed at a time, e.g. via queueing mechanism.
@@ -138,75 +208,81 @@ class AuthSMTPService extends Object {
 	 * @return int
 	 */
 	public static function send_window_size() {
-		return static::config()->get('send_window_size') ?: static::DefaultSendWindowSize;
+		return static::config()->get( 'send_window_size' ) ?: static::DefaultSendWindowSize;
 	}
 
 	public static function allow_empty_body() {
-		return static::config()->get('allow_empty_body');
+		return static::config()->get( 'allow_empty_body' );
 	}
 
 	public static function exceptions_on_error() {
-		return static::config()->get('exceptions_on_error');
+		return static::config()->get( 'exceptions_on_error' );
 	}
 
 	public static function error_recipient() {
-		return static::config()->get('error_recipient');
+		return static::config()->get( 'error_recipient' );
 	}
 
 	public static function test_recipient() {
-		return static::config()->get('test_recipient');
+		return static::config()->get( 'test_recipient' );
 	}
 
 	public static function log_recipient() {
-		return static::config()->get('log_recipient');
+		return static::config()->get( 'log_recipient' );
 	}
 
 	/**
 	 * Getter/Setter for config.log_level which is used while logging in a '<=' comparison.
 	 *
 	 * @param int $newLevel
+	 *
 	 * @return int the current log level (after setting if a new level was supplied)
 	 */
-	public static function log_level($newLevel = null) {
-		if (func_num_args()) {
-			Config::inst()->update(get_called_class(), 'log_level', $newLevel);
+	public static function log_level( $newLevel = null ) {
+		if ( func_num_args() ) {
+			Config::inst()->update( get_called_class(), 'log_level', $newLevel );
 		}
-		return Config::inst()->get(get_called_class(), 'log_level');
+
+		return Config::inst()->get( get_called_class(), 'log_level' );
 	}
-    /**
+
+	/**
 	 * Getter/setter for config.email_log_level which dictates what level log event also gets emailed to admin
 	 *
 	 * @param int $newLevel
+	 *
 	 * @return int the current log level (after setting if a new level was supplied)
 	 */
-	public static function email_log_level($newLevel = null) {
-		if (func_num_args()) {
-			Config::inst()->update(get_called_class(), 'email_log_level', $newLevel);
+	public static function email_log_level( $newLevel = null ) {
+		if ( func_num_args() ) {
+			Config::inst()->update( get_called_class(), 'email_log_level', $newLevel );
 		}
-		return Config::inst()->get(get_called_class(), 'email_log_level');
+
+		return Config::inst()->get( get_called_class(), 'email_log_level' );
 
 	}
 
 	public static function safe_sender() {
-		return static::config()->get('safe_sender');
+		return static::config()->get( 'safe_sender' );
 	}
 
 	/**
 	 * Merge configurable options from self.config in with passed options, passed options take precedence.
 	 *
 	 * @param array $overrideConfig options which override config values
+	 *
 	 * @return array
 	 */
-	public static function options(array $overrideConfig = []) {
-		$config = static::config();
-		$configurableOptions = static::config()->get('mailer_options');
+	public static function options( array $overrideConfig = [] ) {
+		$config              = static::config();
+		$configurableOptions = static::config()->get( 'mailer_options' );
 
 		$options = array_merge(
 			array_combine(
 				$configurableOptions,
 				array_map(
-					function ($key) use ($config) {
-						return $config->get($key);
+					function ( $key ) use ( $config ) {
+						return $config->get( $key );
 					},
 					$configurableOptions
 				)
@@ -243,22 +319,24 @@ class AuthSMTPService extends Object {
 	 * been run already e.g. in app/_config.php, though options for test calls can be overridden via passed array.
 	 *
 	 * @param array $overrideConfig options which override config values
+	 *
 	 * @return array
+	 * @throws \ValidationException
 	 */
-	public static function test_send(array $overrideConfig = []) {
-		if (!Director::is_cli()) {
-			ob_start('nl2br');
+	public static function test_send( array $overrideConfig = [] ) {
+		if ( ! Director::is_cli() ) {
+			ob_start( 'nl2br' );
 		}
-		$options = static::options($overrideConfig);
+		$options = static::options( $overrideConfig );
 
 		$to = static::test_recipient();
 
 		$server = Director::protocolAndHost();
 
 		$body = "Options:\n";
-		foreach ($options as $key => $value) {
-			if ($key == 'password') {
-				$value = str_repeat('*', strlen($value));
+		foreach ( $options as $key => $value ) {
+			if ( $key == 'password' ) {
+				$value = str_repeat( '*', strlen( $value ) );
 			}
 			$body .= "$key:\t\t\t$value\n";
 		}
@@ -281,33 +359,35 @@ class AuthSMTPService extends Object {
 	 * been run already e.g. in app/_config.php, though options for test calls can be overridden via passed array.
 	 *
 	 * @param array $overrideConfig options which override config values
+	 *
 	 * @return array
+	 * @throws \ValidationException
 	 */
-	public static function test_queued_send(array $overrideConfig = []) {
-		if (!Director::is_cli()) {
-			ob_start('nl2br');
+	public static function test_queued_send( array $overrideConfig = [] ) {
+		if ( ! Director::is_cli() ) {
+			ob_start( 'nl2br' );
 		}
-		$options = static::options($overrideConfig);
+		$options = static::options( $overrideConfig );
 
 		$to = static::test_recipient();
 
 		$server = Director::protocolAndHost();
 
 		$body = "Options:\n";
-		foreach ($options as $key => $value) {
-			if ($key == 'password') {
-				$value = str_repeat('*', strlen($value));
+		foreach ( $options as $key => $value ) {
+			if ( $key == 'password' ) {
+				$value = str_repeat( '*', strlen( $value ) );
 			}
 			$body .= "$key:\t\t\t$value\n";
 		}
 
-		AuthSMTPQueueModel::addMessage(
+		AuthSMTPService::enqueue(
 			$to,
 			"Testing queued mail via authsmtp from '$server'",
 			$body,
 			'',
-			serialize(['Name' => 'Fred'],
-			$to)
+			serialize( [ 'Name' => 'Fred' ],
+				$to )
 		);
 
 		echo "Message added to Queue, run /dev/tasks/AuthSMTPQueueTask and check for email sent to '$to' should contain:\n\n$body";
@@ -319,24 +399,28 @@ class AuthSMTPService extends Object {
 	 * Uses values from options to attempt to open a raw socket to the configured host:port. Does not call configure.
 	 *
 	 * @param array $overrideConfig use these options to override/test other settings for host/port
+	 *
 	 * @return array
 	 */
-	public static function test_port(array $overrideConfig = []) {
-		$options = static::options($overrideConfig);
+	public static function test_port( array $overrideConfig = [] ) {
+		$options = static::options( $overrideConfig );
 
-		if (!isset($options['host']) || !isset($options['port'])) {
-			user_error("No host or port set, can't continue port test", E_USER_ERROR);
+		if ( ! isset( $options['host'] ) || ! isset( $options['port'] ) ) {
+			user_error( "No host or port set, can't continue port test", E_USER_ERROR );
+
 			return [];
 		}
-		$fp = @fsockopen($options['host'], $options['port'], $errno, $errstr, 5);
-		if (!$fp) {
-			user_error("Looks like port '" . $options['port'] . "' is not open to connect to host '" . $options['host'] . "'. $errstr", E_USER_ERROR);
+		$fp = @fsockopen( $options['host'], $options['port'], $errno, $errstr, 5 );
+		if ( ! $fp ) {
+			user_error( "Looks like port '" . $options['port'] . "' is not open to connect to host '" . $options['host'] . "'. $errstr", E_USER_ERROR );
+
 			return [];
 		} else {
 			// port is open and available
-			fclose($fp);
+			fclose( $fp );
 			echo "Port '" . $options['host'] . ':' . $options['port'] . "' appears to be open";
 		}
+
 		return $options;
 	}
 

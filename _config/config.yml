@@ -4,6 +4,13 @@ After:
   - 'cms/*'
   - 'framework/*'
 ---
+Injector:
+  Email:
+    class: AuthSMTPEmail
+    factory: AuthSMTPService
+AuthSMTPEmail:
+  inline_styles: true
+  queue: true
 AuthSMTPService:
   host: mail.authsmtp.com
   port: 2525
