@@ -12,6 +12,6 @@ class AuthSMTPQueueTask extends BuildTask {
 	 */
 	public function run($request) {
 		set_time_limit(0);
-		AuthSMTPQueueModel::processQueue();
+		AuthSMTPQueueEntryModel::process_queue();
 	}
 }

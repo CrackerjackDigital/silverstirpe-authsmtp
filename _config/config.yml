@@ -4,6 +4,13 @@ After:
   - 'cms/*'
   - 'framework/*'
 ---
+Injector:
+  Email:
+    class: AuthSMTPEmail
+AuthSMTPMailer:
+  ssl:
+    verify_host: true   # set to false to disable ssl host name checking
+    verify_peer: true   # set to false to disable ssl peer checking (we should be connecting to a trusted host).
 AuthSMTPService:
   host: mail.authsmtp.com
   port: 2525
@@ -18,3 +25,4 @@ AuthSMTPService:
 #  allowed_from: [''] # A list of the domains that emails may be sent from. This should be a valid domain sender in AuthSMTP config
 #  from: ''           # who all emails will be sent from if the sender is not allowed as above and no SS_SEND_ALL_EMAILS_FROM is already set will set it. This should be a valid sender in AuthSMTP config
 #  queue: true        # turn queuing on or off
+

@@ -1,13 +1,13 @@
 <?php
 class AuthSMTPLogAdmin extends ModelAdmin {
 	private static $managed_models = [
-		'AuthSMTPQueueModel' => [
-			'title' => 'Email Logs',
+		'AuthSMTPQueueEntryModel' => [
+			'title' => 'Sent Emails',
 		],
 	];
 
 	private static $url_segment = 'auth-smtp';
-	private static $menu_title = 'SMTP Logs';
+	private static $menu_title = 'Sent Email';
 
 	public $showImportForm = false;
 
