@@ -4,7 +4,7 @@
 	"type": "silverstripe-module",
 	"require": {
 		"silverstripe/cms": ">=3.1.0",
-		"markguinn/silverstripe-email-helpers": "1.1.x"
+		"markguinn/silverstripe-email-helpers": "1.2.1"
 	},
 	"config": {
 		"process-timeout": 900
